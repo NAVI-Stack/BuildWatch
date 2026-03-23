@@ -46,7 +46,7 @@ pub fn detect_project(project_root: &Path) -> Result<Vec<DetectedProject>> {
         detected.push(DetectedProject {
             project_type: "go".into(),
             name: dir_name.clone(),
-            build_command: format!("go build -o bin/{} ./cmd/{}",  dir_name, dir_name),
+            build_command: format!("go build -o bin/{} ./cmd/{}", dir_name, dir_name),
             output_path: Some(format!("bin/{}", dir_name)),
             watch_extensions: vec![".go".into(), ".mod".into(), ".sum".into()],
             exclude_paths: vec!["vendor/".into(), "bin/".into()],
@@ -84,7 +84,13 @@ pub fn detect_project(project_root: &Path) -> Result<Vec<DetectedProject>> {
             name: dir_name.clone(),
             build_command: "cmake --build build".into(),
             output_path: None,
-            watch_extensions: vec![".c".into(), ".cpp".into(), ".h".into(), ".hpp".into(), ".cmake".into()],
+            watch_extensions: vec![
+                ".c".into(),
+                ".cpp".into(),
+                ".h".into(),
+                ".hpp".into(),
+                ".cmake".into(),
+            ],
             exclude_paths: vec!["build/".into()],
         });
     }
@@ -157,7 +163,11 @@ pub fn detect_project(project_root: &Path) -> Result<Vec<DetectedProject>> {
         tracing::info!(
             "Detected {} project type(s): {}",
             detected.len(),
-            detected.iter().map(|d| d.project_type.as_str()).collect::<Vec<_>>().join(", ")
+            detected
+                .iter()
+                .map(|d| d.project_type.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
         );
     }
 

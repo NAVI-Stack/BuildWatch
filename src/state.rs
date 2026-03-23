@@ -6,7 +6,6 @@
 use anyhow::{bail, Context, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -17,28 +16,12 @@ const HEARTBEAT_TIMEOUT_SECS: i64 = 15;
 
 /// Returns the platform-appropriate base state directory.
 fn base_state_dir() -> PathBuf {
-    if cfg!(windows) {
-        PathBuf::from(std::env::var("TEMP").unwrap_or_else(|_| "C:\\Temp".into()))
-            .join("buildwatch")
-    } else {
-        PathBuf::from("/tmp/buildwatch")
-    }
-}
-
-/// Deterministic hash of a project root path for the state directory name.
-fn project_hash(project_root: &Path) -> String {
-    let canonical = project_root
-        .canonicalize()
-        .unwrap_or_else(|_| project_root.to_path_buf());
-    let mut hasher = Sha256::new();
-    hasher.update(canonical.to_string_lossy().as_bytes());
-    let result = hasher.finalize();
-    hex::encode(&result[..4]) // 8 hex chars
+    crate::state_dir()
 }
 
 /// Returns the state directory for a given project root.
 pub fn state_dir_for(project_root: &Path) -> PathBuf {
-    base_state_dir().join(project_hash(project_root))
+    base_state_dir().join(crate::project_hash(project_root))
 }
 
 /// Ensure the state directory exists.
@@ -47,6 +30,20 @@ pub fn ensure_state_dir(project_root: &Path) -> Result<PathBuf> {
     std::fs::create_dir_all(&dir)
         .with_context(|| format!("Failed to create state dir: {}", dir.display()))?;
     Ok(dir)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GlobalRegistryEntry {
+    pub project_root: String,
+    pub project_hash: String,
+    pub pid: u32,
+    pub heartbeat: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GlobalRegistry {
+    pub projects: Vec<GlobalRegistryEntry>,
+    pub updated_at: Option<DateTime<Utc>>,
 }
 
 // --- Data structures ---
@@ -178,13 +175,21 @@ pub fn fuzzy_match_target(query: &str, state: &ProjectState) -> Result<String> {
         0 => bail!(
             "No target matching '{}'. Available: {}",
             query,
-            targets.iter().map(|t| t.as_str()).collect::<Vec<_>>().join(", ")
+            targets
+                .iter()
+                .map(|t| t.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
         ),
         1 => Ok(matches[0].to_string()),
         _ => bail!(
             "Ambiguous target '{}'. Matches: {}",
             query,
-            matches.iter().map(|t| t.as_str()).collect::<Vec<_>>().join(", ")
+            matches
+                .iter()
+                .map(|t| t.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
         ),
     }
 }
@@ -206,7 +211,9 @@ pub fn print_status(verbose: bool, json_output: bool) -> Result<()> {
     let mut entries = Vec::new();
     for entry in std::fs::read_dir(&base)? {
         let entry = entry?;
-        if !entry.file_type()?.is_dir() { continue; }
+        if !entry.file_type()?.is_dir() {
+            continue;
+        }
         let state_dir = entry.path();
         if let Ok(info) = read_daemon_info(&state_dir) {
             let alive = is_daemon_alive(&info);
@@ -261,6 +268,91 @@ pub fn clean_state(project_root: &Path) -> Result<()> {
     Ok(())
 }
 
+pub fn acquire_lock(state_dir: &Path, pid: u32) -> Result<()> {
+    let lock_path = state_dir.join("lock");
+    if lock_path.exists() {
+        let existing = std::fs::read_to_string(&lock_path).unwrap_or_default();
+        if let Ok(existing_pid) = existing.trim().parse::<u32>() {
+            if process_alive(existing_pid) {
+                bail!("Daemon lock already held by pid {}", existing_pid);
+            }
+        }
+    }
+    atomic_write(&lock_path, &format!("{pid}\n"))
+}
+
+pub fn release_lock(state_dir: &Path) -> Result<()> {
+    let lock_path = state_dir.join("lock");
+    if lock_path.exists() {
+        std::fs::remove_file(&lock_path)
+            .with_context(|| format!("Failed to remove {}", lock_path.display()))?;
+    }
+    Ok(())
+}
+
+fn process_alive(pid: u32) -> bool {
+    #[cfg(unix)]
+    {
+        unsafe { libc::kill(pid as i32, 0) == 0 }
+    }
+    #[cfg(windows)]
+    {
+        std::process::Command::new("tasklist")
+            .args(["/FI", &format!("PID eq {pid}")])
+            .output()
+            .map(|out| String::from_utf8_lossy(&out.stdout).contains(&pid.to_string()))
+            .unwrap_or(false)
+    }
+}
+
+fn read_global_registry(base: &Path) -> Result<GlobalRegistry> {
+    let path = base.join("global.json");
+    if !path.exists() {
+        return Ok(GlobalRegistry::default());
+    }
+    let content = std::fs::read_to_string(&path)
+        .with_context(|| format!("Failed to read {}", path.display()))?;
+    Ok(serde_json::from_str(&content)?)
+}
+
+fn write_global_registry(base: &Path, registry: &GlobalRegistry) -> Result<()> {
+    let path = base.join("global.json");
+    atomic_write(&path, &serde_json::to_string_pretty(registry)?)
+}
+
+pub fn register_project(project_root: &Path, info: &DaemonInfo) -> Result<()> {
+    let base = base_state_dir();
+    std::fs::create_dir_all(&base)
+        .with_context(|| format!("Failed to create state root {}", base.display()))?;
+    let mut registry = read_global_registry(&base)?;
+    let root = project_root.to_string_lossy().to_string();
+    registry
+        .projects
+        .retain(|p| p.project_root != root && process_alive(p.pid));
+    registry.projects.push(GlobalRegistryEntry {
+        project_root: root,
+        project_hash: info.project_hash.clone(),
+        pid: info.pid,
+        heartbeat: info.heartbeat,
+    });
+    registry.updated_at = Some(Utc::now());
+    write_global_registry(&base, &registry)
+}
+
+pub fn unregister_project(project_root: &Path) -> Result<()> {
+    let base = base_state_dir();
+    if !base.exists() {
+        return Ok(());
+    }
+    let mut registry = read_global_registry(&base)?;
+    let root = project_root.to_string_lossy().to_string();
+    registry
+        .projects
+        .retain(|p| p.project_root != root && process_alive(p.pid));
+    registry.updated_at = Some(Utc::now());
+    write_global_registry(&base, &registry)
+}
+
 /// Tail the build log for a project/target.
 pub fn tail_log(project_root: &Path, _target: Option<&str>) -> Result<()> {
     let dir = state_dir_for(project_root);
@@ -274,6 +366,12 @@ pub fn tail_log(project_root: &Path, _target: Option<&str>) -> Result<()> {
     let lines: Vec<&str> = content.lines().collect();
     let start = lines.len().saturating_sub(50);
     for line in &lines[start..] {
+        if let Some(target) = _target {
+            let prefix = format!("[{}]", target);
+            if !line.contains(&prefix) {
+                continue;
+            }
+        }
         println!("{}", line);
     }
     Ok(())

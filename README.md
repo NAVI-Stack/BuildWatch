@@ -45,6 +45,14 @@ Core subsystems:
 - **Detector** — Project type auto-detection from filesystem markers
 - **State** — JSON files on disk for IPC (no sockets, no databases)
 
+## Binary Names
+
+BuildWatch ships two binaries:
+- `buildwatch` — daemon and management CLI
+- `wr` — freshness-gate wrapper
+
+`wr` is intentionally short for fast agent/human typing in repeated run loops. If command collisions are observed in target environments, a compatibility alias (for example `bw` or `bwr`) can be added without removing `wr`.
+
 ## Prerequisites
 
 - [Rust toolchain](https://rustup.rs/) (1.75+)

@@ -95,17 +95,15 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     // Initialize tracing
-    let subscriber = tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| {
-                    if cli.verbose {
-                        "buildwatch=debug".into()
-                    } else {
-                        "buildwatch=info".into()
-                    }
-                }),
-        );
+    let subscriber = tracing_subscriber::fmt().with_env_filter(
+        tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+            if cli.verbose {
+                "buildwatch=debug".into()
+            } else {
+                "buildwatch=info".into()
+            }
+        }),
+    );
 
     if cli.json {
         subscriber.json().init();
@@ -113,9 +111,9 @@ async fn main() -> Result<()> {
         subscriber.init();
     }
 
-    let project_root = cli.project.unwrap_or_else(|| {
-        std::env::current_dir().expect("Failed to get current directory")
-    });
+    let project_root = cli
+        .project
+        .unwrap_or_else(|| std::env::current_dir().expect("Failed to get current directory"));
 
     match cli.command {
         Commands::Init { auto, project_type } => {
@@ -124,16 +122,32 @@ async fn main() -> Result<()> {
             let config = buildwatch::detector::generate_config(detected, project_type)?;
             buildwatch::config::write_config(&project_root, &config)?;
             if !auto {
-                println!("Generated buildwatch.config.json with {} target(s)", config.targets.len());
+                println!(
+                    "Generated buildwatch.config.json with {} target(s)",
+                    config.targets.len()
+                );
                 println!("Review the config, then run: buildwatch haunt");
             }
         }
-        Commands::Haunt { foreground, target, settling } | Commands::Start { foreground, .. } => {
+        Commands::Haunt {
+            foreground,
+            target,
+            settling,
+        } => {
+            let mut config = buildwatch::config::load_config(&project_root)?;
+            buildwatch::config::apply_haunt_overrides(&mut config, &target, settling)?;
+            if foreground {
+                buildwatch::daemon::run_foreground(project_root, config).await?;
+            } else {
+                buildwatch::daemon::run_daemon(project_root, &target, settling)?;
+            }
+        }
+        Commands::Start { foreground } => {
             let config = buildwatch::config::load_config(&project_root)?;
             if foreground {
                 buildwatch::daemon::run_foreground(project_root, config).await?;
             } else {
-                buildwatch::daemon::run_daemon(project_root, config)?;
+                buildwatch::daemon::run_daemon(project_root, &[], None)?;
             }
         }
         Commands::Stop => {

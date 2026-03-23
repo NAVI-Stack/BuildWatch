@@ -45,15 +45,15 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
     let is_agent = buildwatch::output::is_agent_caller();
 
-    let project_root = cli.project.unwrap_or_else(|| {
-        std::env::current_dir().expect("Failed to get current directory")
-    });
+    let project_root = cli
+        .project
+        .unwrap_or_else(|| std::env::current_dir().expect("Failed to get current directory"));
 
     // Resolve project hash and state directory
     let state_dir = buildwatch::state::state_dir_for(&project_root);
 
     // Check daemon liveness
-    let daemon_info = match buildwatch::state::read_daemon_info(&state_dir) {
+    match buildwatch::state::read_daemon_info(&state_dir) {
         Ok(info) if buildwatch::state::is_daemon_alive(&info) => info,
         _ => {
             if is_agent || cli.json {
@@ -99,10 +99,9 @@ fn main() -> Result<()> {
                         let mut cmd = Command::new(&full_path);
                         cmd.args(&cli.args);
 
-                        let status = cmd.status().context(format!(
-                            "Failed to execute {}",
-                            full_path.display()
-                        ))?;
+                        let status = cmd
+                            .status()
+                            .context(format!("Failed to execute {}", full_path.display()))?;
 
                         std::process::exit(status.code().unwrap_or(1));
                     } else {
@@ -122,11 +121,17 @@ fn main() -> Result<()> {
             }
             "building" => {
                 if cli.no_wait {
-                    eprintln!("Target '{}' is currently building (--no-wait)", resolved_target);
+                    eprintln!(
+                        "Target '{}' is currently building (--no-wait)",
+                        resolved_target
+                    );
                     std::process::exit(1);
                 }
                 if Instant::now() > deadline {
-                    bail!("Timeout waiting for '{}' to finish building", resolved_target);
+                    bail!(
+                        "Timeout waiting for '{}' to finish building",
+                        resolved_target
+                    );
                 }
                 thread::sleep(Duration::from_millis(200));
                 continue;

@@ -37,11 +37,7 @@ impl BuildQueue {
 
     /// Evaluate a file change event against configured targets.
     /// Enqueue affected targets, coalescing if already pending.
-    pub fn enqueue_from_event(
-        &mut self,
-        event: &FileChangeEvent,
-        targets: &[TargetConfig],
-    ) {
+    pub fn enqueue_from_event(&mut self, event: &FileChangeEvent, targets: &[TargetConfig]) {
         for target in targets {
             if !target.enabled {
                 continue;
@@ -134,10 +130,12 @@ fn compute_priority(target: &TargetConfig, changed_files: &[String]) -> i32 {
     let mut score = target.priority;
 
     // File affinity: boost if changed files fall within watch_paths
-    let affinity = changed_files.iter().filter(|f| {
-        target.watch_paths.is_empty()
-            || target.watch_paths.iter().any(|wp| f.starts_with(wp))
-    }).count();
+    let affinity = changed_files
+        .iter()
+        .filter(|f| {
+            target.watch_paths.is_empty() || target.watch_paths.iter().any(|wp| f.starts_with(wp))
+        })
+        .count();
 
     score += affinity as i32;
 

@@ -4,9 +4,11 @@
 //! state assertions for build coordination.
 
 use anyhow::{Context, Result};
+use serde::Deserialize;
 use std::path::{Path, PathBuf};
 use tokio::sync::mpsc;
 use watchman_client::prelude::*;
+use watchman_client::SubscriptionData;
 
 /// Events emitted by the watcher to the build queue.
 #[derive(Debug, Clone)]

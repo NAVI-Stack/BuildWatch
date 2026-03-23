@@ -8,13 +8,23 @@ pub mod queue;
 pub mod state;
 pub mod watcher;
 
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum WraithError {
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("serialization error: {0}")]
+    Serde(#[from] serde_json::Error),
+    #[error("{0}")]
+    Message(String),
+}
+
 /// Project hash used for state directory naming.
 /// Deterministic SHA-256 (first 8 bytes) of the canonical project root path.
 pub fn project_hash(root: &std::path::Path) -> String {
     use sha2::{Digest, Sha256};
-    let canonical = root
-        .canonicalize()
-        .unwrap_or_else(|_| root.to_path_buf());
+    let canonical = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
     let hash = Sha256::digest(canonical.to_string_lossy().as_bytes());
     hash[..8]
         .iter()

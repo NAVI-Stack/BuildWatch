@@ -107,17 +107,34 @@ pub struct TargetConfig {
 
 // --- Default value functions ---
 
-fn default_version() -> u32 { 1 }
-fn default_settling_delay() -> u64 { 200 }
-fn default_build_timeout() -> u64 { 300 }
-fn default_true() -> bool { true }
-fn default_priority() -> i32 { 5 }
-fn default_working_dir() -> String { ".".to_string() }
+fn default_version() -> u32 {
+    1
+}
+fn default_settling_delay() -> u64 {
+    200
+}
+fn default_build_timeout() -> u64 {
+    300
+}
+fn default_true() -> bool {
+    true
+}
+fn default_priority() -> i32 {
+    5
+}
+fn default_working_dir() -> String {
+    ".".to_string()
+}
 
 fn default_global_excludes() -> Vec<String> {
     vec![
-        ".git/".into(), "node_modules/".into(), "__pycache__/".into(),
-        "target/".into(), "bin/".into(), ".next/".into(), "dist/".into(),
+        ".git/".into(),
+        "node_modules/".into(),
+        "__pycache__/".into(),
+        "target/".into(),
+        "bin/".into(),
+        ".next/".into(),
+        "dist/".into(),
     ]
 }
 
@@ -146,4 +163,23 @@ pub fn write_config(project_root: &Path, config: &Config) -> Result<()> {
 /// Returns the config file path for a given project root.
 pub fn config_path(project_root: &Path) -> PathBuf {
     project_root.join(CONFIG_FILENAME)
+}
+
+pub fn apply_haunt_overrides(
+    config: &mut Config,
+    target_filters: &[String],
+    settling: Option<u64>,
+) -> Result<()> {
+    if !target_filters.is_empty() {
+        config
+            .targets
+            .retain(|t| target_filters.iter().any(|name| name == &t.name));
+        if config.targets.is_empty() {
+            anyhow::bail!("No matching targets selected via --target");
+        }
+    }
+    if let Some(ms) = settling {
+        config.settling_delay_ms = ms;
+    }
+    Ok(())
 }
