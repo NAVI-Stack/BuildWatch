@@ -23,6 +23,7 @@ use tokio::time::{interval, Duration};
 pub async fn run_foreground(project_root: PathBuf, config: Config) -> Result<()> {
     let state_dir = state::ensure_state_dir(&project_root)?;
     state::acquire_lock(&state_dir, std::process::id())?;
+    let run_result: Result<()> = async {
 
     // Check for existing daemon
     if let Ok(info) = state::read_daemon_info(&state_dir) {
@@ -287,10 +288,13 @@ pub async fn run_foreground(project_root: PathBuf, config: Config) -> Result<()>
         }
     }
 
+        Ok(())
+    }
+    .await;
+
     state::unregister_project(&project_root).ok();
     state::release_lock(&state_dir).ok();
-
-    Ok(())
+    run_result
 }
 
 /// Start the daemon as a background process.

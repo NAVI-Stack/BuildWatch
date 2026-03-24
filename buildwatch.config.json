@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "settling_delay_ms": 200,
+  "build_timeout_seconds": 300,
+  "notifications": {
+    "enabled": true,
+    "on_success": true,
+    "on_failure": true,
+    "sound": true
+  },
+  "targets": [
+    {
+      "name": "buildwatch",
+      "build_command": "cargo build",
+      "output_path": "target/debug/buildwatch",
+      "working_directory": ".",
+      "watch_extensions": [
+        ".rs",
+        ".toml"
+      ],
+      "watch_paths": [],
+      "exclude_paths": [
+        "target/"
+      ],
+      "environment": {},
+      "priority": 5,
+      "enabled": true,
+      "post_build": null,
+      "auto_restart": false
+    }
+  ],
+  "global_excludes": [
+    ".git/",
+    "node_modules/",
+    "__pycache__/",
+    "target/",
+    "bin/",
+    ".next/",
+    "dist/"
+  ]
+}
