@@ -16,5 +16,8 @@
 .DS_Store
 Thumbs.db
 
+# Generated config (per-project, created by `buildwatch init`)
+buildwatch.config.json
+
 # Build artifacts
 /bin/

@@ -11,7 +11,7 @@ pub mod watcher;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum WraithError {
+pub enum BuildWatchError {
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
     #[error("serialization error: {0}")]

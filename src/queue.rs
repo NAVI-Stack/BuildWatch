@@ -26,6 +26,12 @@ pub struct BuildQueue {
     pub current_target: Option<String>,
 }
 
+impl Default for BuildQueue {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BuildQueue {
     pub fn new() -> Self {
         Self {

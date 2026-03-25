@@ -303,7 +303,6 @@ dependencies = [
  "chrono",
  "clap",
  "ctrlc",
- "hex",
  "libc",
  "notify-rust",
  "predicates",
