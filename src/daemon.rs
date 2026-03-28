@@ -137,7 +137,7 @@ pub async fn run_foreground(project_root: PathBuf, config: Config) -> Result<()>
         .context("Failed to install Ctrl+C handler")?;
     }
 
-    println!("👻 BuildWatch is haunting {:?}", project_root);
+    println!("👀 BuildWatch is watching {:?}", project_root);
     println!(
         "   Watching {} target(s). Press Ctrl+C to stop.",
         config.targets.len()
@@ -309,7 +309,7 @@ pub fn run_daemon(
 ) -> Result<()> {
     let exe = std::env::current_exe()?;
     let mut cmd = std::process::Command::new(exe);
-    cmd.arg("haunt")
+    cmd.arg("watch")
         .arg("--foreground")
         .arg("--project")
         .arg(&project_root);
@@ -338,7 +338,7 @@ pub fn run_daemon(
 
     let child = cmd.spawn().context("Failed to spawn daemon process")?;
     println!(
-        "👻 BuildWatch daemon started (pid {}) for {:?}",
+        "👀 BuildWatch daemon started (pid {}) for {:?}",
         child.id(),
         project_root
     );

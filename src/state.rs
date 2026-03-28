@@ -233,7 +233,7 @@ pub fn print_status(verbose: bool, json_output: bool) -> Result<()> {
     }
 
     for (info, alive, state) in &entries {
-        let status_icon = if *alive { "👻" } else { "💀" };
+        let status_icon = if *alive { "👀" } else { "💀" };
         println!("{} {} (pid {})", status_icon, info.project_root, info.pid);
         if let Some(state) = state {
             for (name, ts) in &state.targets {

@@ -22,7 +22,7 @@ cargo build
 buildwatch init
 
 # Start watching (daemon mode)
-buildwatch haunt
+buildwatch watch
 
 # Run a fresh build artifact (blocks until build is ready)
 wr my-target -- --some-flag
@@ -34,7 +34,7 @@ BuildWatch is a standalone tool in the NAVI Ecosystem. It knows nothing about NA
 
 ```
 buildwatch init    → Auto-detect project, generate buildwatch.config.json
-buildwatch haunt   → Start daemon, subscribe to Watchman, auto-rebuild on changes
+buildwatch watch   → Start daemon, subscribe to Watchman, auto-rebuild on changes
 wr <target>    → Freshness gate: block until build is ready, then exec
 ```
 

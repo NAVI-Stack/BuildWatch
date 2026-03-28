@@ -59,13 +59,13 @@ fn main() -> Result<()> {
             if is_agent || cli.json {
                 let msg = serde_json::json!({
                     "error": "no_daemon",
-                    "hint": "Run 'buildwatch haunt' to start the file watcher daemon",
+                    "hint": "Run 'buildwatch watch' to start the file watcher daemon",
                     "project_root": project_root.display().to_string(),
                 });
                 println!("{}", serde_json::to_string(&msg)?);
             } else {
                 eprintln!("No BuildWatch daemon running for {:?}", project_root);
-                eprintln!("Start one with: buildwatch haunt");
+                eprintln!("Start one with: buildwatch watch");
             }
             std::process::exit(1);
         }

@@ -7,7 +7,7 @@ use std::path::PathBuf;
 #[derive(Parser)]
 #[command(
     name = "buildwatch",
-    about = "Universal file watcher & build daemon — the ghost that keeps your builds fresh",
+    about = "Universal file watcher & build daemon — keeping your builds fresh",
     version
 )]
 struct Cli {
@@ -41,7 +41,7 @@ enum Commands {
     },
 
     /// Start watching and auto-building (daemon mode)
-    Haunt {
+    Watch {
         /// Run in foreground (don't daemonize)
         #[arg(long, default_value_t = false)]
         foreground: bool,
@@ -55,7 +55,7 @@ enum Commands {
         settling: Option<u64>,
     },
 
-    /// Alias for haunt
+    /// Alias for watch
     Start {
         #[arg(long, default_value_t = false)]
         foreground: bool,
@@ -126,16 +126,16 @@ async fn main() -> Result<()> {
                     "Generated buildwatch.config.json with {} target(s)",
                     config.targets.len()
                 );
-                println!("Review the config, then run: buildwatch haunt");
+                println!("Review the config, then run: buildwatch watch");
             }
         }
-        Commands::Haunt {
+        Commands::Watch {
             foreground,
             target,
             settling,
         } => {
             let mut config = buildwatch::config::load_config(&project_root)?;
-            buildwatch::config::apply_haunt_overrides(&mut config, &target, settling)?;
+            buildwatch::config::apply_watch_overrides(&mut config, &target, settling)?;
             if foreground {
                 buildwatch::daemon::run_foreground(project_root, config).await?;
             } else {

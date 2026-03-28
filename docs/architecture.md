@@ -11,7 +11,7 @@ BuildWatch is a standalone file watcher and build daemon that keeps artifacts fr
 
 ### 1.1 Scope
 
-- Per-project daemon lifecycle (`haunt`, `stop`, `status`)
+- Per-project daemon lifecycle (`watch`, `stop`, `status`)
 - Watchman-backed file change subscriptions
 - Targeted build orchestration with queue coalescing
 - Freshness-gate runtime (`wr`)
@@ -98,15 +98,15 @@ BuildWatch is a standalone file watcher and build daemon that keeps artifacts fr
 | Command | Purpose |
 |---|---|
 | `buildwatch init` | Detect project, generate `buildwatch.config.json` |
-| `buildwatch haunt` | Start watcher/build daemon |
-| `buildwatch start` | Alias for `haunt` |
+| `buildwatch watch` | Start watcher/build daemon |
+| `buildwatch start` | Alias for `watch` |
 | `buildwatch stop` | Stop daemon for project |
 | `buildwatch status` | Show active daemon and target status |
 | `buildwatch build [target]` | Trigger manual build |
 | `buildwatch log [target]` | Tail build log (optionally target-filtered) |
 | `buildwatch clean` | Remove project state |
 
-### 4.2 `haunt` Runtime Overrides
+### 4.2 `watch` Runtime Overrides
 
 - `--target <name>` filters active targets at runtime
 - `--settling <ms>` overrides debounce delay at runtime
@@ -128,7 +128,7 @@ BuildWatch is a standalone file watcher and build daemon that keeps artifacts fr
 
 ### 5.2 Daemon Loop
 
-`haunt -> lock -> connect -> subscribe -> queue events -> settle -> build -> heartbeat`
+`watch -> lock -> connect -> subscribe -> queue events -> settle -> build -> heartbeat`
 
 Additional runtime controls:
 - Ctrl+C graceful shutdown

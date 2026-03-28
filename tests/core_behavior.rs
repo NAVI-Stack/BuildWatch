@@ -1,4 +1,4 @@
-use buildwatch::config::{apply_haunt_overrides, Config, NotificationConfig, TargetConfig};
+use buildwatch::config::{apply_watch_overrides, Config, NotificationConfig, TargetConfig};
 use buildwatch::queue::BuildQueue;
 use buildwatch::watcher::FileChangeEvent;
 use chrono::Utc;
@@ -66,7 +66,7 @@ fn queue_prioritizes_higher_score_target() {
 }
 
 #[test]
-fn haunt_overrides_filter_targets_and_set_settling() {
+fn watch_overrides_filter_targets_and_set_settling() {
     let mut config = Config {
         version: 1,
         settling_delay_ms: 200,
@@ -75,7 +75,7 @@ fn haunt_overrides_filter_targets_and_set_settling() {
         targets: vec![make_target("api", ".rs", 5), make_target("web", ".ts", 3)],
         global_excludes: vec![],
     };
-    apply_haunt_overrides(&mut config, &[String::from("web")], Some(750))
+    apply_watch_overrides(&mut config, &[String::from("web")], Some(750))
         .expect("overrides should apply");
     assert_eq!(config.settling_delay_ms, 750);
     assert_eq!(config.targets.len(), 1);

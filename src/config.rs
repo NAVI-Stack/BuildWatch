@@ -165,7 +165,7 @@ pub fn config_path(project_root: &Path) -> PathBuf {
     project_root.join(CONFIG_FILENAME)
 }
 
-pub fn apply_haunt_overrides(
+pub fn apply_watch_overrides(
     config: &mut Config,
     target_filters: &[String],
     settling: Option<u64>,
